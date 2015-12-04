@@ -17,8 +17,8 @@ type OpenWeatherMap struct {
 	ApiKey string
 }
 
-func (w OpenWeatherMap) Temperature(city string) (float64, error) {
-	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + w.ApiKey)
+func (w OpenWeatherMap) Temperature(country string, city string) (float64, error) {
+	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?q=" + city + "," + country + "&appid=" + w.ApiKey)
 	if err != nil {
 		return 0, err
 	}
@@ -31,6 +31,8 @@ func (w OpenWeatherMap) Temperature(city string) (float64, error) {
 		return 0, err
 	}
 
-	log.Printf("openWeatherMap: %s: %.2f", city, d.Main.Kelvin)
-	return d.Main.Kelvin, nil
+	kelvin := d.Main.Kelvin
+	celsius := kelvin - 273.15
+	log.Printf("openWeatherMap: %s - %s: %.2fC - %.2fK", country, city, celsius, kelvin)
+	return celsius, nil
 }

@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -12,18 +14,19 @@ import (
 type multiWeatherProvider []weatherProvider
 
 type weatherProvider interface {
-	Temperature(city string) (float64, error) //In Kelvin
+	Temperature(country string, city string) (float64, error) //In Celsius
 }
 
-func (w multiWeatherProvider) temperature(city string) (float64, error) {
-	temps := make(chan float64, len(w))
-	errs := make(chan error, len(w))
+func (mw multiWeatherProvider) temperature(country string, city string) (float64, error) {
+	temps := make(chan float64, len(mw))
+	errs := make(chan error, len(mw))
 
 	sum := 0.0
 
-	for _, provider := range w {
+	for _, provider := range mw {
 		go func(p weatherProvider) {
-			k, err := provider.Temperature(city)
+			log.Printf("weatherProvider: %s", reflect.TypeOf(p))
+			k, err := p.Temperature(country, city)
 			if err != nil {
 				errs <- err
 				return
@@ -32,7 +35,7 @@ func (w multiWeatherProvider) temperature(city string) (float64, error) {
 		}(provider)
 	}
 
-	for i := 0; i < len(w); i++ {
+	for i := 0; i < len(mw); i++ {
 		select {
 		case temp := <-temps:
 			sum += temp
@@ -41,19 +44,25 @@ func (w multiWeatherProvider) temperature(city string) (float64, error) {
 		}
 	}
 
-	return sum / float64(len(w)), nil
+	return sum / float64(len(mw)), nil
 }
 
 func weather(w http.ResponseWriter, r *http.Request) {
 	mw := multiWeatherProvider{
 		provider.OpenWeatherMap{"2de143494c0b295cca9337e1e96b00e0"},
 		provider.WeatherUnderground{"fa05f5ad8312f4f0"},
+		provider.WorldWeather{"91ae5863c85227a15757aa5bd1343"},
 	}
 
 	begin := time.Now()
-	city := strings.SplitN(r.URL.Path, "/", 3)[2]
+	params := strings.SplitN(r.URL.Path, "/", 4)
+	country := params[2]
+	city := params[3]
 
-	temp, err := mw.temperature(city)
+	log.Printf("Country: %s", country)
+	log.Printf("City: %s", city)
+
+	temp, err := mw.temperature(country, city)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -16,8 +16,8 @@ type weatherUndergroundData struct {
 	} `json:"current_observation"`
 }
 
-func (w WeatherUnderground) Temperature(city string) (float64, error) {
-	resp, err := http.Get("http://api.wunderground.com/api/" + w.ApiKey + "/conditions/q/" + city + ".json")
+func (w WeatherUnderground) Temperature(country string, city string) (float64, error) {
+	resp, err := http.Get("http://api.wunderground.com/api/" + w.ApiKey + "/conditions/q/" + country + "/" + city + ".json")
 	if err != nil {
 		return 0, err
 	}
@@ -30,7 +30,8 @@ func (w WeatherUnderground) Temperature(city string) (float64, error) {
 		return 0, err
 	}
 
-	kelvin := d.Observation.Celsius + 273.15
-	log.Printf("weatherUnderground: %s: %.2f", city, kelvin)
-	return kelvin, nil
+	celsius := d.Observation.Celsius
+	kelvin := celsius + 273.15
+	log.Printf("weatherUnderground: %s - %s: %.2fC - %.2fK", country, city, celsius, kelvin)
+	return celsius, nil
 }
