@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"reflect"
-	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sp-ruben-simon/go_test/provider"
 )
 
@@ -25,7 +24,6 @@ func (mw multiWeatherProvider) temperature(country string, city string) (float64
 
 	for _, provider := range mw {
 		go func(p weatherProvider) {
-			log.Printf("weatherProvider: %s", reflect.TypeOf(p))
 			k, err := p.Temperature(country, city)
 			if err != nil {
 				errs <- err
@@ -47,7 +45,7 @@ func (mw multiWeatherProvider) temperature(country string, city string) (float64
 	return sum / float64(len(mw)), nil
 }
 
-func weather(w http.ResponseWriter, r *http.Request) {
+func weatherHandler(w http.ResponseWriter, r *http.Request) {
 	mw := multiWeatherProvider{
 		provider.OpenWeatherMap{"f78e8c405bea7a313ba80a48046063a8"},
 		provider.WeatherUnderground{"fa05f5ad8312f4f0"},
@@ -55,12 +53,11 @@ func weather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	begin := time.Now()
-	params := strings.SplitN(r.URL.Path, "/", 4)
-	country := params[2]
-	city := params[3]
+	vars := mux.Vars(r)
+	country := vars["country"]
+	city := vars["city"]
 
-	log.Printf("Country: %s", country)
-	log.Printf("City: %s", city)
+	log.Printf("Get weather from %s/%s", country, city)
 
 	temp, err := mw.temperature(country, city)
 	if err != nil {
@@ -77,7 +74,8 @@ func weather(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/weather/", weather)
+	r := mux.NewRouter()
+	r.HandleFunc("/weather/{country}/{city}", weatherHandler)
 
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", r)
 }
