@@ -49,7 +49,7 @@ func (mw multiWeatherProvider) temperature(country string, city string) (float64
 
 func weather(w http.ResponseWriter, r *http.Request) {
 	mw := multiWeatherProvider{
-		provider.OpenWeatherMap{"2de143494c0b295cca9337e1e96b00e0"},
+		provider.OpenWeatherMap{"f78e8c405bea7a313ba80a48046063a8"},
 		provider.WeatherUnderground{"fa05f5ad8312f4f0"},
 		provider.WorldWeather{"91ae5863c85227a15757aa5bd1343"},
 	}
